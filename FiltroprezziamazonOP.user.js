@@ -8,15 +8,31 @@
 // @run-at      document-end
 // ==/UserScript==
 
+
+var blackList = ['fifa', 'nba', 'pes', 'soccer', 'singstar', 'xbox', 'beijing', 'move req', 'sports', 'sport', 'cricket', 'pga'];
+
+
 function nascondiProdottiConPrezzoMaggioreDi(prezzoMax) {
     console.log('nascondo prodotti');
-    var productsList = document.getElementsByClassName('product-price');
+    var productsList = document.getElementById('products-list').getElementsByClassName('product-price');
     for (var prod of productsList) {
         var price = prod.textContent;
         var startIndex = price.search(/\d/i);
         price = parseFloat(price.substring(startIndex, price.length));
+        var title = prod.parentElement.getElementsByClassName('product-title')[0].textContent;
+
         if( price > prezzoMax ) {
             prod.parentElement.parentElement.style.display = "none";
+        } else {
+            var searchIndex = -1;
+            var i = 0;
+            while ((searchIndex == -1) && (i < blackList.length)) {
+                searchIndex = title.search(new RegExp(blackList[i], "i"));
+                i += 1;
+            }
+            if (searchIndex != -1) {
+                prod.parentElement.parentElement.style.display = "none";
+            }
         }
     }
     var visibleProducts = [];
@@ -61,6 +77,7 @@ function filtra() {
     }
 
     autoFilter();
+    modifyLayout();
 }
 
 function reAddFeature() {
@@ -79,16 +96,9 @@ function addFiltraButton() {
     container.appendChild(button);
 }
 
-function fireClick(node){
-    if (document.createEvent) {
-        var evt = document.createEvent('MouseEvents');
-        evt.initEvent('click', true, false);
-        node.dispatchEvent(evt);
-    } else if (document.createEventObject) {
-        node.fireEvent('onclick') ;
-    } else if (typeof node.onclick == 'function') {
-        node.onclick();
-    }
+function modifyLayout() {
+    var productContainerStyle = '#seller-profile-container #product-data { max-width: 3000px!important; width: 100%; } #seller-profile-container .product-column {width: 10%!important;}';
+    GM_addStyle(productContainerStyle);
 }
 
 if(location.search.indexOf('seller=') != -1)
