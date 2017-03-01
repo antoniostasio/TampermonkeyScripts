@@ -9,12 +9,13 @@
 // ==/UserScript==
 
 
-var blackList = ['fifa', 'nba', 'pes', 'soccer', 'singstar', 'xbox', 'beijing', 'move req', 'sports', 'sport', 'cricket', 'pga'];
-
+var blackList = ['fifa', 'nba', 'pes', 'soccer', 'singstar', 'xbox', 'beijing', 'move req', 'sports', 'sport', 'cricket', 'pga', 'uefa', 'championship', 'football', 'nfl', 'nhl'];
+var cachedProducts = [];
+var firstElement;
 
 function nascondiProdottiConPrezzoMaggioreDi(prezzoMax) {
-    console.log('nascondo prodotti');
     var productsList = document.getElementById('products-list').getElementsByClassName('product-price');
+
     for (var prod of productsList) {
         var price = prod.textContent;
         var startIndex = price.search(/\d/i);
@@ -35,6 +36,7 @@ function nascondiProdottiConPrezzoMaggioreDi(prezzoMax) {
             }
         }
     }
+
     var visibleProducts = [];
     var sellerProducts = document.getElementById('products-list').getElementsByClassName('product-column');
     for (var produ of sellerProducts) {
@@ -43,13 +45,35 @@ function nascondiProdottiConPrezzoMaggioreDi(prezzoMax) {
         }
     }
 
+    var buttonsDiv = document.getElementById('products-results-data');
+    var buttons = buttonsDiv.getElementsByClassName('products-pagination-button');
+    var nextPageButton = buttons[buttons.length-1];
+
     if (visibleProducts.length === 0) {
-        var buttonsDiv = document.getElementById('products-results-data');
-        var buttons = buttonsDiv.getElementsByClassName('products-pagination-button');
-        var nextPageButton = buttons[buttons.length-1];
+
         if (!nextPageButton.classList.contains('a-disabled')) {
             nextPageButton.click();
-            setTimeout(autoFilter, 1500);
+        }
+    } else if ((cachedProducts.length + visibleProducts.length) < 6) {
+        for(var prod of visibleProducts) {
+            cachedProducts.push(prod.parentElement.removeChild(prod));
+        }
+        nextPageButton.click();
+    } else {
+        for(var prod of visibleProducts) {
+            var riga = prod.parentElement;
+            var visibili = riga.querySelectorAll('.product-column:not([style])').length;
+            while(visibili<7) {
+                if( cachedProducts.length > 0 ) {
+                    riga.appendChild(cachedProducts.pop());
+                    visibili++;
+                } else {
+                    break;
+                }
+            }
+            if( cachedProducts.lenght == 0 ) {
+                break;
+            }
         }
     }
 }
@@ -63,7 +87,6 @@ function autoFilter() {
     var buttonsDiv = document.getElementById('products-results-data');
     var buttons = buttonsDiv.getElementsByClassName('products-pagination-button');
     var nextPageButton = buttons[buttons.length-1];
-    nextPageButton.addEventListener('click', function(e) { setTimeout(autoFilter, 1500); console.log('clicked button');});
 }
 
 function filtra() {
@@ -72,10 +95,10 @@ function filtra() {
         prezzo = parseFloat(prezzo);
         if( prezzo > 0 ) {
             sessionStorage.setItem('_prezzoMax', prezzo);
-            //nascondiProdottiConPrezzoMaggioreDi(prezzo);
         }
     }
 
+    productsAreReady();
     autoFilter();
     modifyLayout();
 }
@@ -94,6 +117,24 @@ function addFiltraButton() {
 
     var container = document.getElementById('product-search-row');
     container.appendChild(button);
+}
+
+function productsAreReady() {
+    var container = document.getElementById('products-list');
+    var productsList = container.getElementsByClassName('product-price');
+    if( !firstElement )
+        firstElement = productsList[0];
+    var mutObserver = new MutationObserver(function(e) {
+        console.log('observed event');
+        if( container.children.length > 2 ) {
+            if( firstElement != productsList[0] ) {
+                autoFilter();
+                firstElement = productsList[0];
+            }
+        }
+    });
+    var config = {childList: true};
+    mutObserver.observe(container, config);
 }
 
 function modifyLayout() {
